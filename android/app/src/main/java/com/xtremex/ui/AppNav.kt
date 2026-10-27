@@ -1,10 +1,20 @@
 package com.xtremex.ui
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Person
@@ -25,8 +35,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavType
@@ -47,9 +60,9 @@ import com.xtremex.ui.wishlist.WishlistScreen
 import java.net.URLDecoder
 import java.net.URLEncoder
 
-// App navigation, ported from Expo Router: tabs (Home/Shop/Wishlist/Cart/
-// Profile, 80dp bar, black active / grey inactive, no labels, cart badge)
-// plus full-screen Collection / Product / Checkout routes above the tabs.
+// V2 navigation: slide + fade screen transitions (Shop-style, springy),
+// bottom bar with pill indicator + labels, cart badge. Tabs crossfade
+// instead of hard-switching.
 
 @Composable
 fun AppNav() {
@@ -60,13 +73,15 @@ fun AppNav() {
     val goProduct: (String) -> Unit = { handle -> nav.navigate("product/$handle") }
     val goCollection: (String) -> Unit = { handle -> nav.navigate("collection/$handle") }
     val goCheckout: (String) -> Unit = { url -> nav.navigate("checkout?url=${URLEncoder.encode(url, "UTF-8")}") }
+    val slide = slideInHorizontally(initialOffsetX = { it / 3 }, animationSpec = tween(300)) + fadeIn(tween(300))
+    val slideOut = slideOutHorizontally(targetOffsetX = { -it / 3 }, animationSpec = tween(300)) + fadeOut(tween(300))
 
     NavHost(navController = nav, startDestination = "tabs") {
         composable("tabs") {
             Scaffold(
                 topBar = { if (tab == 0) HomeHeader(onShop = { tab = 1 }) },
                 bottomBar = {
-                    NavigationBar(containerColor = Color.White, tonalElevation = 0.dp, modifier = Modifier.height(80.dp)) {
+                    NavigationBar(containerColor = Color.White, tonalElevation = 8.dp, modifier = Modifier.height(76.dp)) {
                         val icons = listOf(
                             Icons.Filled.Home to "Home",
                             Icons.Filled.Search to "Shop",
@@ -87,11 +102,13 @@ fun AppNav() {
                                         Icon(icon, contentDescription = label, modifier = Modifier.size(24.dp))
                                     }
                                 },
-                                label = null,
+                                label = { Text(label, fontSize = 10.sp, fontWeight = if (tab == i) FontWeight.Bold else FontWeight.Normal) },
                                 colors = NavigationBarItemDefaults.colors(
-                                    selectedIconColor = Color.Black,
+                                    selectedIconColor = Color.White,
                                     unselectedIconColor = Color(0xFF999999),
-                                    indicatorColor = Color.Transparent
+                                    selectedTextColor = Color.Black,
+                                    unselectedTextColor = Color(0xFF999999),
+                                    indicatorColor = Color.Black
                                 )
                             )
                         }
@@ -99,20 +116,24 @@ fun AppNav() {
                 }
             ) { padding ->
                 Box(modifier = Modifier.fillMaxSize().padding(padding)) {
-                    when (tab) {
-                        0 -> HomeScreen(onProduct = goProduct, onCollection = goCollection, onShop = { tab = 1 })
-                        1 -> ShopScreen(onProduct = goProduct, onCollection = goCollection)
-                        2 -> WishlistScreen(onProduct = goProduct)
-                        3 -> CartScreen(onProduct = goProduct, onCheckout = goCheckout)
-                        else -> ProfileScreen()
+                    AnimatedContent(targetState = tab, label = "tab") { t ->
+                        when (t) {
+                            0 -> HomeScreen(onProduct = goProduct, onCollection = goCollection, onShop = { tab = 1 })
+                            1 -> ShopScreen(onProduct = goProduct, onCollection = goCollection)
+                            2 -> WishlistScreen(onProduct = goProduct)
+                            3 -> CartScreen(onProduct = goProduct, onCheckout = goCheckout)
+                            else -> ProfileScreen()
+                        }
                     }
                 }
             }
         }
-        composable("collection/{handle}", arguments = listOf(navArgument("handle") { type = NavType.StringType })) { back ->
+        composable("collection/{handle}", arguments = listOf(navArgument("handle") { type = NavType.StringType }),
+            enterTransition = { slide }, exitTransition = { slideOut }, popEnterTransition = { slide }, popExitTransition = { slideOut }) { back ->
             CollectionScreen(handle = back.arguments?.getString("handle") ?: "", onBack = { nav.popBackStack() }, onProduct = goProduct)
         }
-        composable("product/{handle}", arguments = listOf(navArgument("handle") { type = NavType.StringType })) { back ->
+        composable("product/{handle}", arguments = listOf(navArgument("handle") { type = NavType.StringType }),
+            enterTransition = { slide }, exitTransition = { slideOut }, popEnterTransition = { slide }, popExitTransition = { slideOut }) { back ->
             ProductScreen(
                 handle = back.arguments?.getString("handle") ?: "",
                 onBack = { nav.popBackStack() },
@@ -120,7 +141,8 @@ fun AppNav() {
                 onCheckout = goCheckout
             )
         }
-        composable("checkout?url={url}", arguments = listOf(navArgument("url") { type = NavType.StringType; nullable = true })) { back ->
+        composable("checkout?url={url}", arguments = listOf(navArgument("url") { type = NavType.StringType; nullable = true }),
+            enterTransition = { slide }, exitTransition = { slideOut }) { back ->
             val raw = back.arguments?.getString("url") ?: ""
             CheckoutScreen(url = try { URLDecoder.decode(raw, "UTF-8") } catch (e: Exception) { raw })
         }

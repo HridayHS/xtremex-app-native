@@ -87,9 +87,16 @@ fun HomeHeader(onShop: () -> Unit) {
         modifier = Modifier.fillMaxWidth().statusBarsPadding().background(Color.White).padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text("XTREMEX", fontSize = 22.sp, fontWeight = FontWeight.ExtraBold, letterSpacing = 1.1.sp, color = Primary, modifier = Modifier.weight(1f))
-        IconButton(onClick = onShop, modifier = Modifier.size(36.dp)) {
-            Icon(Icons.Filled.Search, contentDescription = "Search", tint = Primary, modifier = Modifier.size(20.dp))
+        Text("XTREMEX", fontSize = 22.sp, fontWeight = FontWeight.ExtraBold, letterSpacing = 1.1.sp, color = Primary, modifier = Modifier.padding(end = 12.dp))
+        // V2: full search pill, like Shop's search bar, not just an icon.
+        Box(
+            modifier = Modifier.weight(1f).height(38.dp).clip(RoundedCornerShape(999.dp)).background(Color(0xFFF2F2F2)).clickable { onShop() }.padding(horizontal = 12.dp),
+            contentAlignment = Alignment.CenterStart
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Filled.Search, contentDescription = "Search", tint = Muted, modifier = Modifier.size(18.dp))
+                Text("Search products", fontSize = 13.sp, color = Muted, modifier = Modifier.padding(start = 6.dp))
+            }
         }
     }
 }
@@ -113,6 +120,7 @@ fun HomeScreen(
         }
         LazyColumn(modifier = Modifier.fillMaxSize()) {
             item { HeroCarousel(onProduct) }
+            item { StoreFollowCard() }
             item { SectionTitle("NEW ARRIVALS") }
             item {
                 if (state.newArrivals.isEmpty()) {
@@ -153,9 +161,34 @@ fun HomeScreen(
     }
 }
 
+// Shop-feed pattern, rebuilt for a single store: store identity row +
+// Follow button, above the product feed. No Shop branding or assets.
+@Composable
+private fun StoreFollowCard() {
+    val following by WishlistStore.followingStore.collectAsState()
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp).padding(top = 20.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(modifier = Modifier.size(48.dp).clip(CircleShape).background(Color.Black), contentAlignment = Alignment.Center) {
+            Text("X", fontSize = 20.sp, fontWeight = FontWeight.ExtraBold, color = Color.White)
+        }
+        Column(modifier = Modifier.weight(1f).padding(start = 12.dp)) {
+            Text("XTREMEX", fontSize = 15.sp, fontWeight = FontWeight.ExtraBold, color = Primary)
+            Text("Official store", fontSize = 12.sp, color = Muted)
+        }
+        Button(
+            onClick = { WishlistStore.toggleFollowStore() },
+            colors = ButtonDefaults.buttonColors(containerColor = if (following) Color(0xFFF2F2F2) else Color.Black, contentColor = if (following) Primary else Color.White),
+            shape = RoundedCornerShape(999.dp),
+            contentPadding = PaddingValues(horizontal = 20.dp, vertical = 8.dp)
+        ) { Text(if (following) "Following" else "Follow", fontSize = 13.sp, fontWeight = FontWeight.Bold) }
+    }
+}
+
 @Composable
 fun SectionTitle(title: String) {
-    Text(title, fontSize = 22.sp, fontWeight = FontWeight.Black, letterSpacing = 1.5.sp, color = Primary, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp).padding(top = 20.dp, bottom = 16.dp))
+    Text(title, fontSize = 20.sp, fontWeight = FontWeight.ExtraBold, letterSpacing = 0.3.sp, color = Primary, modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp).padding(top = 24.dp, bottom = 12.dp))
 }
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -221,11 +254,11 @@ private fun Pill(label: String) {
 
 @Composable
 fun ProductCard(product: Product, width: Dp, wishlisted: Boolean, onWishlist: () -> Unit, onProduct: () -> Unit) {
-    Column(modifier = Modifier.width(width).clickable { onProduct() }) {
+    Column(modifier = Modifier.width(width).clickable { onProduct() }) { // V2: card press handled by Nav transition + image fade
         Box(modifier = Modifier.fillMaxWidth()) {
             ShopImage(sizedImage(product.image, 600), product.title, ContentScale.Crop, Modifier.fillMaxWidth().aspectRatio(0.6f).clip(RoundedCornerShape(12.dp)).background(BgSecondary))
-            IconButton(onClick = onWishlist, modifier = Modifier.align(Alignment.TopEnd).padding(8.dp).size(28.dp)) {
-                Icon(if (wishlisted) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder, contentDescription = "Wishlist", tint = Primary, modifier = Modifier.size(18.dp))
+            Box(modifier = Modifier.align(Alignment.TopEnd).padding(8.dp).size(32.dp).clip(CircleShape).background(Color.White).clickable { onWishlist() }, contentAlignment = Alignment.Center) {
+                Icon(if (wishlisted) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder, contentDescription = "Wishlist", tint = if (wishlisted) Color(0xFFE53935) else Primary, modifier = Modifier.size(18.dp))
             }
             if (!product.inStock) {
                 Text("SOLD OUT", color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Bold, modifier = Modifier.align(Alignment.TopStart).padding(8.dp).background(Primary, RoundedCornerShape(4.dp)).padding(horizontal = 6.dp, vertical = 2.dp))
@@ -234,7 +267,7 @@ fun ProductCard(product: Product, width: Dp, wishlisted: Boolean, onWishlist: ()
         Text(product.title.uppercase(), fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = Primary, maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 8.dp).height(30.dp))
         Text(formatPricePaise(product.firstVariant?.pricePaise), fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Primary, modifier = Modifier.padding(top = 3.dp))
         if (product.firstVariant?.compareAtPricePaise != null) {
-            Text(formatPricePaise(product.firstVariant?.compareAtPricePaise), fontSize = 11.sp, color = Secondary, modifier = Modifier.padding(top = 2.dp))
+            Text(formatPricePaise(product.firstVariant?.compareAtPricePaise), fontSize = 11.sp, color = Secondary, style = androidx.compose.ui.text.TextStyle(textDecoration = androidx.compose.ui.text.style.TextDecoration.LineThrough), modifier = Modifier.padding(top = 2.dp))
         }
     }
 }

@@ -111,10 +111,12 @@ fun ProductScreen(handle: String, onBack: () -> Unit, onCart: () -> Unit, onChec
 
     Column(modifier = Modifier.fillMaxSize()) {
         Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-            IconButton(onClick = onBack) { Icon(Icons.Filled.ArrowBack, contentDescription = "Back", tint = Primary) }
+            Box(modifier = Modifier.size(40.dp).clip(CircleShape).background(Color.White).clickable { onBack() }, contentAlignment = Alignment.Center) {
+                Icon(Icons.Filled.ArrowBack, contentDescription = "Back", tint = Primary)
+            }
             Spacer(modifier = Modifier.weight(1f))
-            if (p != null) IconButton(onClick = { WishlistStore.toggleProduct(p) }) {
-                Icon(if (isWishlisted) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder, contentDescription = "Wishlist", tint = Primary)
+            if (p != null) Box(modifier = Modifier.size(40.dp).clip(CircleShape).background(Color.White).clickable { WishlistStore.toggleProduct(p) }, contentAlignment = Alignment.Center) {
+                Icon(if (isWishlisted) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder, contentDescription = "Wishlist", tint = if (isWishlisted) Color(0xFFE53935) else Primary)
             }
         }
         when {

@@ -12,6 +12,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -61,8 +62,13 @@ fun ShopImage(
             } catch (e: Exception) { null }
         }
     }
+    // V2: crossfade in once loaded, instead of popping in.
+    val alpha by androidx.compose.animation.core.animateFloatAsState(
+        targetValue = if (bitmap != null) 1f else 0f,
+        animationSpec = androidx.compose.animation.core.tween(300), label = "imgFade"
+    )
     if (bitmap != null) {
-        Image(bitmap = bitmap!!.asImageBitmap(), contentDescription = contentDescription, contentScale = contentScale, modifier = modifier)
+        Image(bitmap = bitmap!!.asImageBitmap(), contentDescription = contentDescription, contentScale = contentScale, modifier = modifier.graphicsLayer(alpha = alpha))
     } else {
         Box(modifier = modifier)
     }

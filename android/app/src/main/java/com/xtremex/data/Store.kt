@@ -90,6 +90,7 @@ object WishlistStore {
     fun init(context: Context) {
         prefs = context.getSharedPreferences("xtremex_wishlist", Context.MODE_PRIVATE)
         _items.value = load()
+        _followingStore.value = prefs.getBoolean("following_store", false)
     }
     private fun load(): List<WishlistItem> = try {
         val arr = JSONArray(prefs.getString("items", "[]") ?: "[]")
@@ -115,6 +116,13 @@ object WishlistStore {
     }
     fun toggleProduct(p: Product) = toggle(WishlistItem(p.id, p.title, p.handle, p.image, formatPricePaise(p.firstVariant?.pricePaise)))
     fun remove(id: String) = save(_items.value.filter { it.id != id })
+    // Shop-style "Follow store" (own code, XtremeX only): persisted like wishlist.
+    private val _followingStore = MutableStateFlow(false)
+    val followingStore: StateFlow<Boolean> = _followingStore.asStateFlow()
+    fun toggleFollowStore() {
+        _followingStore.value = !_followingStore.value
+        prefs.edit().putBoolean("following_store", _followingStore.value).apply()
+    }
     fun clear() = save(emptyList())
     fun isWishlisted(id: String): Boolean = _items.value.any { it.id == id }
 }
