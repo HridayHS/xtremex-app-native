@@ -45,14 +45,22 @@ Debug APK: `android/app/build/outputs/apk/debug/app-debug.apk`.
   "muse: ..." message). A plain Java localhost socket test
   reproduces it exactly; a Python localhost socket works fine, so
   this is Java-specific interception, not a broken daemon.
-  Unblock: in the Muse web app (muse.ai), open Settings ->
-  Permissions -> Manage permissions -> Direct network protocols
-  and switch `other_tcp` from Deny to Ask, then re-run
-  `./gradlew assembleDebug` here. Note: this row does not appear
-  in the Android app's Permissions screen (that screen only shows
-  Connectors and Artifacts/scheduled tasks) — it is web-only.
-  Until then, build on a normal machine / Android Studio, where
-  the daemon works.
+  UPDATE (27 Oct 2026, after the switch): switching `other_tcp`
+  to Ask does NOT unblock the build on this VM. The user approved
+  the localhost connection cards quickly (4s and 7s after request),
+  and the grants are recorded as durable "always allowed" for
+  those specific daemon ports, but the held daemon connection is
+  still dropped — the client times out after ~10s and the daemon
+  stops, every time (ports tried: 42433, 35199, etc.). The
+  approval covers one random port per run, and the in-flight
+  connection is not resumed after approval. So: do NOT keep
+  tapping approval cards for Gradle builds here; they will not
+  make the daemon work. Build on a normal machine / Android
+  Studio, where the daemon works, or verify the code by a
+  non-daemon route (see below).
+  Note: this row does not appear in the Android app's Permissions
+  screen (that screen only shows Connectors and Artifacts/
+  scheduled tasks) — it is web-only.
   `android/gradlew` here is a minimal wrapper (curl-downloads
   Gradle 9.1.0) because the official `gradle wrapper` task itself
   needs the daemon; replace it with the official wrapper on a
