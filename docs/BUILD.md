@@ -12,7 +12,11 @@
 - compileSdk 36, minSdk 26, targetSdk 36, buildToolsVersion 36.1.0
 - Package / applicationId: `com.xtremex.native` (code namespace `com.xtremex`; `native` is a Java keyword, so it cannot be a code package segment; applicationId differs from the old app `com.xtremex` so both install side-by-side for testing)
 - Coil 3: `io.coil-kt.coil3:coil-compose:3.3.0` (Coil 3 moved from
-  the old `io.coil-kt:coil-compose` groupId — that artifact stops at 2.7.0)
+  the old `io.coil-kt:coil-compose` groupId — that artifact stops at 2.7.0).
+  NOTE (28 Oct 2026): Coil's default fetcher returned no images at all on
+  the user's Pixel, so runtime image loading is now `data/ImageLoader.kt`
+  (ShopImage, OkHttp — the same network path the API calls use). Coil
+  remains a dependency but is not used for product/hero images.
 - Compose BOM 2026.09.00 is NOT usable here: it pulls Compose 1.12.1,
   which requires compileSdk 37, and platform 37 is not in this SDK
   repository. Stay on 2025.10.00 until platform 37 is available.
