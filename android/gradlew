@@ -1,0 +1,20 @@
+#!/bin/sh
+# Minimal Gradle wrapper for the XtremeX scaffold.
+# Downloads Gradle 9.1.0 to GRADLE_USER_HOME/wrapper/dists if needed
+# (via curl, which honours the egress proxy), then runs it.
+# Replace with the official wrapper script (`gradle wrapper`) on a
+# machine where the Gradle daemon works — see docs/BUILD.md.
+set -e
+GRADLE_VERSION="9.1.0"
+GRADLE_USER_HOME="${GRADLE_USER_HOME:-$HOME/.gradle}"
+DIST_DIR="$GRADLE_USER_HOME/wrapper/dists/gradle-$GRADLE_VERSION-bin"
+GRADLE_BIN="$DIST_DIR/gradle-$GRADLE_VERSION/bin/gradle"
+if [ ! -x "$GRADLE_BIN" ]; then
+  echo "Downloading Gradle $GRADLE_VERSION..."
+  mkdir -p "$DIST_DIR"
+  TMP_ZIP="$(mktemp).zip"
+  trap 'rm -f "$TMP_ZIP"' EXIT
+  curl -fsSL "https://services.gradle.org/distributions/gradle-$GRADLE_VERSION-bin.zip" -o "$TMP_ZIP"
+  unzip -q -o "$TMP_ZIP" -d "$DIST_DIR"
+fi
+exec "$GRADLE_BIN" "$@"
