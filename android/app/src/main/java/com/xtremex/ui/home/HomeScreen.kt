@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
@@ -95,6 +96,20 @@ private val DISCOVER_BANNERS = listOf(
 private val STYLE_PILLS = listOf("HOODIE", "COMPRESSION", "JOGGERS", "TSHIRTS")
 private const val FOOTER_POSTER = "https://xtremexmartialarts.com/cdn/shop/files/preview_images/24adc4d90b40414e8cc05d5ebfdda1c0.thumbnail.0000000000_small.jpg"
 
+// Port of the old app's withProductImageWidth: Shopify CDN images are
+// huge at full size (hero PNG is 3.2 MB); requesting a sized WebP makes
+// them load fast on mobile. The old app used width=600 for cards.
+private fun sizedImage(url: String, width: Int): String {
+    if (url.isEmpty()) return url
+    return try {
+        val uri = android.net.Uri.parse(url)
+        uri.buildUpon()
+            .appendQueryParameter("width", width.toString())
+            .appendQueryParameter("format", "webp")
+            .build().toString()
+    } catch (e: Exception) { url }
+}
+
 @Composable
 fun HomeApp(vm: HomeViewModel = viewModel()) {
     var tab by remember { mutableStateOf(0) }
@@ -103,7 +118,7 @@ fun HomeApp(vm: HomeViewModel = viewModel()) {
         topBar = {
             if (tab == 0) {
                 Row(
-                    modifier = Modifier.fillMaxWidth().background(Color.White).padding(horizontal = 16.dp, vertical = 12.dp),
+                    modifier = Modifier.fillMaxWidth().statusBarsPadding().background(Color.White).padding(horizontal = 16.dp, vertical = 12.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
@@ -254,7 +269,7 @@ fun HomeScreen(vm: HomeViewModel, modifier: Modifier = Modifier) {
             item { Spacer(modifier = Modifier.height(18.dp)) }
             item {
                 AsyncImage(
-                    model = FOOTER_POSTER,
+                    model = sizedImage(FOOTER_POSTER, 800),
                     contentDescription = "XtremeX",
                     contentScale = ContentScale.Crop,
                     modifier = Modifier.fillMaxWidth().aspectRatio(0.75f).background(Color(0xFF1A1A1A))
@@ -307,7 +322,7 @@ private fun HeroCarousel() {
             val slide = HERO_SLIDES[page]
             Box(modifier = Modifier.fillMaxSize().background(Primary)) {
                 AsyncImage(
-                    model = slide.poster,
+                    model = sizedImage(slide.poster, 1080),
                     contentDescription = slide.title,
                     contentScale = ContentScale.Crop,
                     modifier = Modifier.fillMaxSize()
@@ -358,7 +373,7 @@ private fun DiscoverGrid() {
             ) {
                 row.forEach { banner ->
                     AsyncImage(
-                        model = banner.image,
+                        model = sizedImage(banner.image, 800),
                         contentDescription = banner.handle,
                         contentScale = ContentScale.Crop,
                         modifier = Modifier.weight(1f).aspectRatio(1f / 1.4f).clip(RoundedCornerShape(14.dp)).background(BgSecondary)
@@ -400,7 +415,7 @@ private fun ProductCard(product: Product, width: androidx.compose.ui.unit.Dp, wi
     Column(modifier = Modifier.width(width)) {
         Box(modifier = Modifier.fillMaxWidth()) {
             AsyncImage(
-                model = product.image,
+                model = sizedImage(product.image, 600),
                 contentDescription = product.title,
                 contentScale = ContentScale.Crop,
                 modifier = Modifier.fillMaxWidth().aspectRatio(0.6f).clip(RoundedCornerShape(12.dp)).background(BgSecondary)
