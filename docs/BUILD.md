@@ -1,16 +1,21 @@
 # Build spec — Android
 
-## Pinned toolchain (scaffold, Oct 2026)
+## Pinned toolchain (verified, 28 Oct 2026)
 
 - JDK 21 (Temurin 21.0.13 used on the build VM)
 - Android SDK: platform 36, build-tools 36.1.0, platform-tools,
   command-line tools
-- Android CLI 1.1.x (installed at `~/.local/bin/android`) — usable
-  for scaffold/build/preview/run, with one sandbox caveat below
-- Kotlin 2.4.x, Jetpack Compose BOM 2026.09.00, Material 3
-- AGP 9.1.0, Gradle 9.1.0
-- compileSdk 36, minSdk 26, targetSdk 36
+- Kotlin built into AGP (see below — no separate kotlin.android plugin)
+- Jetpack Compose BOM 2025.10.00 (Compose 1.9.3), Material 3
+- AGP 9.1.0, Gradle 9.3.1 (AGP 9.1.0 requires Gradle >= 9.3.1;
+  9.1.0 fails with "Minimum supported Gradle version is 9.3.1")
+- compileSdk 36, minSdk 26, targetSdk 36, buildToolsVersion 36.1.0
 - Package / applicationId: `com.xtremex`
+- Coil 3: `io.coil-kt.coil3:coil-compose:3.3.0` (Coil 3 moved from
+  the old `io.coil-kt:coil-compose` groupId — that artifact stops at 2.7.0)
+- Compose BOM 2026.09.00 is NOT usable here: it pulls Compose 1.12.1,
+  which requires compileSdk 37, and platform 37 is not in this SDK
+  repository. Stay on 2025.10.00 until platform 37 is available.
 
 ## Build commands
 
@@ -21,6 +26,11 @@ cd android
 ```
 
 Debug APK: `android/app/build/outputs/apk/debug/app-debug.apk`.
+
+Verified 28 Oct 2026: `./gradlew assembleDebug` succeeds on the
+build VM (13 MB debug APK, `com.xtremex` 1.0.0, minSdk 26,
+targetSdk 36). Build time ~3m38s on the 2-CPU VM, first build
+longer (dependency downloads).
 
 ## VM / sandbox caveats (recorded, not to be "fixed" by guessing)
 
@@ -36,35 +46,46 @@ Debug APK: `android/app/build/outputs/apk/debug/app-debug.apk`.
 - Gradle dependency downloads work when the proxy is configured in
   `~/.gradle/gradle.properties` (systemProp proxy settings). That
   file is machine-local and must NEVER be committed to the repo.
-- BLOCKER (VM, 27 Oct 2026): the Gradle build cannot run on this VM
-  yet, because Muse's runtime intercepts Java TCP connections —
-  including the Gradle daemon's localhost socket — and returns
-  "Other TCP connections is turned off". The client then fails with
-  `Could not receive a message from the daemon` /
-  `Unexpected type tag 109` (109 = 'm', the first byte of that
-  "muse: ..." message). A plain Java localhost socket test
-  reproduces it exactly; a Python localhost socket works fine, so
-  this is Java-specific interception, not a broken daemon.
-  UPDATE (27 Oct 2026, after the switch): switching `other_tcp`
-  to Ask does NOT unblock the build on this VM. The user approved
-  the localhost connection cards quickly (4s and 7s after request),
-  and the grants are recorded as durable "always allowed" for
-  those specific daemon ports, but the held daemon connection is
-  still dropped — the client times out after ~10s and the daemon
-  stops, every time (ports tried: 42433, 35199, etc.). The
-  approval covers one random port per run, and the in-flight
-  connection is not resumed after approval. So: do NOT keep
-  tapping approval cards for Gradle builds here; they will not
-  make the daemon work. Build on a normal machine / Android
-  Studio, where the daemon works, or verify the code by a
-  non-daemon route (see below).
-  Note: this row does not appear in the Android app's Permissions
-  screen (that screen only shows Connectors and Artifacts/
-  scheduled tasks) — it is web-only.
-  `android/gradlew` here is a minimal wrapper (curl-downloads
-  Gradle 9.1.0) because the official `gradle wrapper` task itself
-  needs the daemon; replace it with the official wrapper on a
-  machine where the daemon works.
+
+### The Gradle daemon fix (VM, solved 28 Oct 2026)
+
+The daemon handshake used to fail on this VM because Java was
+connecting to localhost over IPv6: the runtime intercepts that
+as "Other TCP connections" and returns a "muse: ..." message
+instead of the daemon's greeting, so the client failed with
+`Could not receive a message from the daemon` /
+`Unexpected type tag 109` (109 = 'm'). A plain Java localhost
+socket test reproduced it exactly; a Python localhost socket
+worked fine, because Python uses IPv4.
+
+Switching `other_tcp` to Ask and tapping "always allow" did NOT
+fix it: the grants are per-port, the daemon picks a random port
+per run, and even a fixed, already-approved port (42433, via a
+patched TcpIncomingConnector) still did not connect — the held
+connection is dropped and not resumed after approval.
+
+The fix that works: force Java to IPv4 for both the client and
+the daemon:
+
+```bash
+JAVA_OPTS="-Djava.net.preferIPv4Stack=true" \
+GRADLE_OPTS="-Djava.net.preferIPv4Stack=true" \
+./gradlew assembleDebug
+```
+
+With that, the daemon connects with no approval cards at all.
+Do NOT remove this flag from VM builds, and do NOT go back to
+tapping approval cards for Gradle — they do not work for this.
+
+Known, non-fatal warning on VM builds: "Failed to compile with
+Kotlin daemon / Using fallback strategy: Compile without Kotlin
+daemon". The Kotlin daemon has the same TCP problem; the fallback
+compiles fine, so this warning can be ignored here.
+
+`android/gradlew` here is a minimal wrapper (curl-downloads
+Gradle 9.3.1) because the official `gradle wrapper` task itself
+needs the daemon; replace it with the official wrapper on a
+machine where the daemon works.
 
 ## Signing / release (not yet)
 
