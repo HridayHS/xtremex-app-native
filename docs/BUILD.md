@@ -45,10 +45,14 @@ Debug APK: `android/app/build/outputs/apk/debug/app-debug.apk`.
   "muse: ..." message). A plain Java localhost socket test
   reproduces it exactly; a Python localhost socket works fine, so
   this is Java-specific interception, not a broken daemon.
-  Unblock: in the Muse app, open Settings -> Permissions ->
-  Direct network protocols and switch `other_tcp` from Deny to Ask,
-  then re-run `./gradlew assembleDebug` here. Until then, build on
-  a normal machine / Android Studio, where the daemon works.
+  Unblock: in the Muse web app (muse.ai), open Settings ->
+  Permissions -> Manage permissions -> Direct network protocols
+  and switch `other_tcp` from Deny to Ask, then re-run
+  `./gradlew assembleDebug` here. Note: this row does not appear
+  in the Android app's Permissions screen (that screen only shows
+  Connectors and Artifacts/scheduled tasks) — it is web-only.
+  Until then, build on a normal machine / Android Studio, where
+  the daemon works.
   `android/gradlew` here is a minimal wrapper (curl-downloads
   Gradle 9.1.0) because the official `gradle wrapper` task itself
   needs the daemon; replace it with the official wrapper on a
