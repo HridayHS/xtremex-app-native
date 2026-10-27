@@ -9,7 +9,7 @@ android {
     buildToolsVersion = "36.1.0"
 
     defaultConfig {
-        applicationId = "com.xtremex"
+        applicationId = "com.xtremex.native"
         minSdk = 26
         targetSdk = 36
         versionCode = 1

@@ -52,7 +52,7 @@ Native app (`HridayHS/xx`, Mar–Apr 2026, v1.0.0, Expo + React Native).
 - Spacing (dp): xs 4, sm 8, md 12, lg 16, xl 20, xxl 24, xxxl 30
 - Radii: sm 4, md 8, lg 12, xl 14, full 999
 - Portrait orientation only in v1 (matching the old app).
-- App name: XtremeX. Package: `com.xtremex`. Scheme: `xtremex`.
+- App name: XtremeX. ApplicationId: `com.xtremex.native`. Code namespace stays `com.xtremex` because `native` is a Java keyword and cannot be a code package segment. Scheme: `xtremex`.
 
 ## Collections (source of truth, from old `store/collections.ts`)
 

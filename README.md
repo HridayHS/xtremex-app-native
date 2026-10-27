@@ -44,4 +44,4 @@ The debug APK lands in
 - AGP 9.1.0, Gradle 9.1.0
 - compileSdk 36, minSdk 26, targetSdk 36 (Play requires target 36
   for new apps since 31 Aug 2026)
-- Package: `com.xtremex`
+- Package: `com.xtremex.native`

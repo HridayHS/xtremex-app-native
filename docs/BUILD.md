@@ -10,7 +10,7 @@
 - AGP 9.1.0, Gradle 9.3.1 (AGP 9.1.0 requires Gradle >= 9.3.1;
   9.1.0 fails with "Minimum supported Gradle version is 9.3.1")
 - compileSdk 36, minSdk 26, targetSdk 36, buildToolsVersion 36.1.0
-- Package / applicationId: `com.xtremex`
+- Package / applicationId: `com.xtremex.native` (code namespace `com.xtremex`; `native` is a Java keyword, so it cannot be a code package segment; applicationId differs from the old app `com.xtremex` so both install side-by-side for testing)
 - Coil 3: `io.coil-kt.coil3:coil-compose:3.3.0` (Coil 3 moved from
   the old `io.coil-kt:coil-compose` groupId — that artifact stops at 2.7.0)
 - Compose BOM 2026.09.00 is NOT usable here: it pulls Compose 1.12.1,
@@ -28,7 +28,7 @@ cd android
 Debug APK: `android/app/build/outputs/apk/debug/app-debug.apk`.
 
 Verified 28 Oct 2026: `./gradlew assembleDebug` succeeds on the
-build VM (13 MB debug APK, `com.xtremex` 1.0.0, minSdk 26,
+build VM (13 MB debug APK, `com.xtremex.native` 1.0.0, minSdk 26,
 targetSdk 36). Build time ~3m38s on the 2-CPU VM, first build
 longer (dependency downloads).
 
