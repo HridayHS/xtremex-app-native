@@ -14,7 +14,8 @@ data class Variant(
     val option1: String?,
     val option2: String?,
     val option3: String?,
-    val position: Int
+    val position: Int,
+    val imageId: String? = null
 )
 
 data class OptionDefinition(
@@ -35,7 +36,8 @@ data class Product(
     val options: List<OptionDefinition>,
     val images: List<String>,
     val createdAt: String,
-    val publishedAt: String
+    val publishedAt: String,
+    val imageIds: List<String> = emptyList()
 ) {
     val image: String get() = images.firstOrNull().orEmpty()
     val firstVariant: Variant? get() = variants.firstOrNull()

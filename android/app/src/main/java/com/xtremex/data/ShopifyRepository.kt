@@ -88,6 +88,16 @@ object ShopifyRepository {
         return out
     }
 
+    private fun parseImageIds(json: JSONObject): List<String> {
+        val out = mutableListOf<String>()
+        val arr = json.optJSONArray("images") ?: return out
+        for (i in 0 until arr.length()) {
+            val item = arr.optJSONObject(i)
+            out.add(if (item != null && item.has("id")) item.opt("id").toString() else "")
+        }
+        return out
+    }
+
     fun parseProduct(json: JSONObject): Product {
         val variants = mutableListOf<Variant>()
         val varr = json.optJSONArray("variants")
@@ -105,7 +115,8 @@ object ShopifyRepository {
                         option1 = v.optString("option1").takeIf { it.isNotEmpty() },
                         option2 = v.optString("option2").takeIf { it.isNotEmpty() },
                         option3 = v.optString("option3").takeIf { it.isNotEmpty() },
-                        position = v.optInt("position", i + 1)
+                        position = v.optInt("position", i + 1),
+                        imageId = if (v.has("image_id") && !v.isNull("image_id")) v.opt("image_id").toString() else null
                     )
                 )
             }
@@ -139,7 +150,8 @@ object ShopifyRepository {
             options = options,
             images = parseImages(json),
             createdAt = json.optString("created_at"),
-            publishedAt = json.optString("published_at")
+            publishedAt = json.optString("published_at"),
+            imageIds = parseImageIds(json)
         )
     }
 
@@ -168,6 +180,52 @@ object ShopifyRepository {
         val body = get(url)
         val obj = JSONObject(body).optJSONObject("product") ?: return null
         return parseProduct(obj)
+    }
+
+    /** Product page: .json has no `available` — merge availability from .js by variant id (docs/DATA.md). */
+    fun productWithAvailability(handle: String): Product? {
+        val p = productByHandle(handle) ?: return null
+        return try {
+            val js = JSONObject(get("$BASE_URL/products/$handle.js"))
+            val avail = mutableMapOf<String, Boolean>()
+            val varr = js.optJSONArray("variants")
+            if (varr != null) for (i in 0 until varr.length()) {
+                val v = varr.optJSONObject(i) ?: continue
+                avail[v.opt("id").toString()] = v.optBoolean("available", true)
+            }
+            if (avail.isEmpty()) p else p.copy(variants = p.variants.map { v ->
+                if (avail.containsKey(v.id)) v.copy(available = avail[v.id] == true) else v
+            })
+        } catch (e: Exception) { p }
+    }
+
+    /** Predictive search: /search/suggest.json?q=…&resources[type]=product */
+    fun searchSuggest(query: String): List<Product> {
+        val enc = java.net.URLEncoder.encode(query, "UTF-8")
+        val body = get("$BASE_URL/search/suggest.json?q=$enc&resources[type]=product")
+        val arr = JSONObject(body).optJSONObject("resources")?.optJSONObject("results")?.optJSONArray("products")
+            ?: return emptyList()
+        val out = mutableListOf<Product>()
+        for (i in 0 until arr.length()) {
+            val o = arr.optJSONObject(i) ?: continue
+            val img = when {
+                o.optString("image").isNotEmpty() -> o.optString("image")
+                o.optJSONObject("featured_image") != null -> o.optJSONObject("featured_image")!!.optString("src")
+                else -> ""
+            }
+            val priceObj = o.optJSONArray("variants")?.optJSONObject(0)?.opt("price")
+            val pricePaise = if (priceObj is Number) (priceObj.toDouble() * 100).toInt()
+                else try { (BigDecimal(priceObj.toString()).multiply(BigDecimal(100))).toInt() } catch (e: Exception) { 0 }
+            out.add(Product(
+                id = o.opt("id").toString(), title = o.optString("title"), handle = o.optString("handle"),
+                bodyHtml = "", vendor = "", tags = emptyList(),
+                variants = listOf(Variant(o.optJSONArray("variants")?.optJSONObject(0)?.opt("id").toString() ?: "",
+                    "", pricePaise, null, true, null, null, null, 1)),
+                options = emptyList(), images = if (img.isEmpty()) emptyList() else listOf(normaliseImageUrl(img)),
+                createdAt = "", publishedAt = ""
+            ))
+        }
+        return out
     }
 
     fun newArrivals(limit: Int = 8): List<Product> {
