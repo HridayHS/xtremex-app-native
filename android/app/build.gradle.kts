@@ -42,6 +42,7 @@ dependencies {
     implementation("androidx.compose.ui:ui-graphics")
     implementation("androidx.compose.ui:ui-tooling-preview")
     implementation("androidx.compose.material3:material3")
+    implementation("androidx.compose.material:material-icons-extended")
     implementation("androidx.navigation:navigation-compose:2.9.5")
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.10.0")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.9.0")
